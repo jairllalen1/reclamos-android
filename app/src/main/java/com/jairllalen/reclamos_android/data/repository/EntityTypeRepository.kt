@@ -74,13 +74,17 @@ class EntityTypeRepository(
      * El backend responde 204 No Content.
      */
     suspend fun deleteEntityType(id: Int): NetworkResult<Unit> {
+
         return try {
 
             val response = apiService.deleteEntityType(id)
 
             if (response.isSuccessful) {
+
                 NetworkResult.Success(Unit)
+
             } else {
+
                 NetworkResult.HttpError(
                     code = response.code(),
                     message = extractErrorMessage(response)
@@ -113,8 +117,11 @@ class EntityTypeRepository(
                 val body = response.body()
 
                 if (body != null) {
+
                     NetworkResult.Success(body)
+
                 } else {
+
                     NetworkResult.UnknownError(
                         IllegalStateException(
                             "La API respondió correctamente pero no devolvió datos."
@@ -142,13 +149,19 @@ class EntityTypeRepository(
 
     /**
      * Intenta obtener el mensaje enviado por el backend.
+     *
+     * Siempre devuelve un String para poder usarlo
+     * en NetworkResult.HttpError.
      */
     private fun <T> extractErrorMessage(
         response: Response<T>
-    ): String? {
+    ): String {
 
         val errorBody = response.errorBody()?.string()
-            ?: return null
+
+        if (errorBody.isNullOrBlank()) {
+            return "Error HTTP ${response.code()}."
+        }
 
         return try {
 

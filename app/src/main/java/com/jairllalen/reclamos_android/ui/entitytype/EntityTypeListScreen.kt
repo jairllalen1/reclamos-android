@@ -14,8 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -40,8 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jairllalen.reclamos_android.data.model.EntityType
 
@@ -69,7 +68,6 @@ fun EntityTypeListScreen(
         SnackbarHostState()
     }
 
-
     // ============================================================
     // CARGA INICIAL / REGRESO A LA PANTALLA
     // ============================================================
@@ -80,7 +78,6 @@ fun EntityTypeListScreen(
             viewModel.loadEntities()
         }
     }
-
 
     // ============================================================
     // MENSAJES DE ÉXITO
@@ -97,7 +94,6 @@ fun EntityTypeListScreen(
             viewModel.clearDeleteMessage()
         }
     }
-
 
     // ============================================================
     // FILTRADO
@@ -131,6 +127,9 @@ fun EntityTypeListScreen(
         }
     }
 
+    // ============================================================
+    // PANTALLA PRINCIPAL
+    // ============================================================
 
     Scaffold(
 
@@ -178,15 +177,14 @@ fun EntityTypeListScreen(
                 )
             }
         }
-    ) { paddingValues ->
 
+    ) { paddingValues ->
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-
 
             // ====================================================
             // BARRA DE BÚSQUEDA
@@ -211,7 +209,6 @@ fun EntityTypeListScreen(
                 singleLine = true
             )
 
-
             // ====================================================
             // ERROR CON DATOS EXISTENTES
             // ====================================================
@@ -228,7 +225,6 @@ fun EntityTypeListScreen(
                     }
                 )
             }
-
 
             // ====================================================
             // LOADING
@@ -277,7 +273,7 @@ fun EntityTypeListScreen(
             }
 
             // ====================================================
-            // BUSQUEDA SIN RESULTADOS
+            // BÚSQUEDA SIN RESULTADOS
             // ====================================================
 
             else if (
@@ -305,7 +301,6 @@ fun EntityTypeListScreen(
             }
         }
     }
-
 
     // ============================================================
     // CONFIRMACIÓN DELETE
@@ -347,6 +342,7 @@ fun EntityTypeListScreen(
                     },
 
                     enabled = !uiState.isDeleting
+
                 ) {
 
                     if (uiState.isDeleting) {
@@ -372,6 +368,7 @@ fun EntityTypeListScreen(
                     },
 
                     enabled = !uiState.isDeleting
+
                 ) {
 
                     Text("Cancelar")
@@ -379,7 +376,6 @@ fun EntityTypeListScreen(
             }
         )
     }
-
 
     // ============================================================
     // ERROR DELETE
@@ -418,6 +414,7 @@ private fun EntityTypeList(
         ),
 
         verticalArrangement = Arrangement.spacedBy(8.dp)
+
     ) {
 
         items(
@@ -425,11 +422,12 @@ private fun EntityTypeList(
             key = {
                 it.idEntityType
             }
+
         ) { entity ->
 
             EntityTypeItem(
 
-                entity = entity,
+                entityType = entity,
 
                 onEdit = {
                     onEdit(entity.idEntityType)

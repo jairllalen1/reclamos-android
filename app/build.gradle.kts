@@ -42,9 +42,9 @@ android {
 
 dependencies {
 
-    // -------------------------
+    // =========================
     // Jetpack Compose
-    // -------------------------
+    // =========================
 
     implementation(platform(libs.androidx.compose.bom))
 
@@ -52,44 +52,47 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // Íconos Compose
+    implementation("androidx.compose.material:material-icons-extended")
+
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // -------------------------
+    // =========================
     // Activity
-    // -------------------------
+    // =========================
 
     implementation(libs.androidx.activity.compose)
 
-    // -------------------------
+    // =========================
     // Navigation
-    // -------------------------
+    // =========================
 
     implementation(libs.androidx.navigation.compose)
 
-    // -------------------------
+    // =========================
     // Lifecycle / ViewModel
-    // -------------------------
+    // =========================
 
-    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // -------------------------
+    // =========================
     // Retrofit
-    // -------------------------
+    // =========================
 
     implementation(libs.squareup.retrofit)
     implementation(libs.squareup.retrofit.gson)
 
-    // -------------------------
+    // =========================
     // OkHttp
-    // -------------------------
+    // =========================
 
     implementation(libs.squareup.okhttp)
     implementation(libs.squareup.okhttp.logging)
 
-    // -------------------------
+    // =========================
     // Tests
-    // -------------------------
+    // =========================
 
     testImplementation(libs.junit)
 

@@ -23,14 +23,12 @@ class EntityTypeViewModel(
     private val _uiState = MutableStateFlow(EntityTypeUiState())
     val uiState: StateFlow<EntityTypeUiState> = _uiState.asStateFlow()
 
-
     // ============================================================
     // LISTAR
     // ============================================================
 
     fun loadEntities() {
 
-        // Evita lanzar otra petición mientras ya existe una en curso.
         if (_uiState.value.isLoading) {
             return
         }
@@ -42,13 +40,17 @@ class EntityTypeViewModel(
 
         viewModelScope.launch {
 
-            when (val result = repository.getAll()) {
+            when (val result = repository.getAllEntityTypes()) {
 
-                is NetworkResult.Success -> {
+                is NetworkResult.Success<*> -> {
+
+                    @Suppress("UNCHECKED_CAST")
+                    val entities =
+                        result.data as List<com.jairllalen.reclamos_android.data.model.EntityType>
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        entities = result.data,
+                        entities = entities,
                         errorMessage = null
                     )
                 }
@@ -83,7 +85,6 @@ class EntityTypeViewModel(
         }
     }
 
-
     // ============================================================
     // OBTENER POR ID
     // ============================================================
@@ -102,13 +103,17 @@ class EntityTypeViewModel(
 
         viewModelScope.launch {
 
-            when (val result = repository.getById(id)) {
+            when (val result = repository.getEntityTypeById(id)) {
 
-                is NetworkResult.Success -> {
+                is NetworkResult.Success<*> -> {
+
+                    @Suppress("UNCHECKED_CAST")
+                    val entity =
+                        result.data as com.jairllalen.reclamos_android.data.model.EntityType
 
                     _uiState.value = _uiState.value.copy(
                         isLoadingEntity = false,
-                        selectedEntity = result.data,
+                        selectedEntity = entity,
                         loadingEntityError = null
                     )
                 }
@@ -144,7 +149,6 @@ class EntityTypeViewModel(
             }
         }
     }
-
 
     // ============================================================
     // CREAR
@@ -190,9 +194,9 @@ class EntityTypeViewModel(
                 idUserCreate = CURRENT_USER_ID
             )
 
-            when (val result = repository.create(request)) {
+            when (val result = repository.createEntityType(request)) {
 
-                is NetworkResult.Success -> {
+                is NetworkResult.Success<*> -> {
 
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
@@ -236,7 +240,6 @@ class EntityTypeViewModel(
             }
         }
     }
-
 
     // ============================================================
     // MODIFICAR
@@ -283,9 +286,9 @@ class EntityTypeViewModel(
                 idUserUpdate = CURRENT_USER_ID
             )
 
-            when (val result = repository.update(id, request)) {
+            when (val result = repository.updateEntityType(id, request)) {
 
-                is NetworkResult.Success -> {
+                is NetworkResult.Success<*> -> {
 
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
@@ -330,7 +333,6 @@ class EntityTypeViewModel(
         }
     }
 
-
     // ============================================================
     // ELIMINAR
     // ============================================================
@@ -349,17 +351,15 @@ class EntityTypeViewModel(
 
         viewModelScope.launch {
 
-            when (val result = repository.delete(id)) {
+            when (val result = repository.deleteEntityType(id)) {
 
-                is NetworkResult.Success -> {
+                is NetworkResult.Success<*> -> {
 
                     _uiState.value = _uiState.value.copy(
                         isDeleting = false,
                         deleteSuccess = true,
                         deleteErrorMessage = null,
 
-                        // Eliminamos inmediatamente el registro
-                        // de la lista local.
                         entities = _uiState.value.entities.filter {
                             it.idEntityType != id
                         }
@@ -402,7 +402,6 @@ class EntityTypeViewModel(
         }
     }
 
-
     // ============================================================
     // LIMPIAR MENSAJES
     // ============================================================
@@ -429,7 +428,6 @@ class EntityTypeViewModel(
             loadingEntityError = null
         )
     }
-
 
     // ============================================================
     // VALIDACIÓN
@@ -467,7 +465,6 @@ class EntityTypeViewModel(
 
         return null
     }
-
 
     // ============================================================
     // MENSAJES HTTP
