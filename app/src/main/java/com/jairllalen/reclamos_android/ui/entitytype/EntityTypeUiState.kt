@@ -4,48 +4,43 @@ import com.jairllalen.reclamos_android.data.model.EntityType
 
 data class EntityTypeUiState(
 
-    // =========================================================
+    // =========================
     // LISTADO
-    // =========================================================
+    // =========================
 
-    val entityTypes: List<EntityType> = emptyList(),
+    val entities: List<EntityType> = emptyList(),
 
     val isLoading: Boolean = false,
 
     val errorMessage: String? = null,
 
-    // =========================================================
+    // =========================
     // FORMULARIO
-    // =========================================================
+    // =========================
 
     val isSaving: Boolean = false,
 
-    val editingEntityType: EntityType? = null,
+    val saveErrorMessage: String? = null,
 
-    val nameTypeEntity: String = "",
+    val saveSuccess: Boolean = false,
 
-    val entitySize: String = "",
-
-    val sector: String = "",
-
-    // Errores específicos de cada campo
-    val nameError: String? = null,
-
-    val sizeError: String? = null,
-
-    val sectorError: String? = null,
-
-    // =========================================================
+    // =========================
     // ELIMINACIÓN
-    // =========================================================
+    // =========================
 
     val isDeleting: Boolean = false,
 
-    val entityTypeToDelete: EntityType? = null,
+    val deleteErrorMessage: String? = null,
 
-    // =========================================================
-    // MENSAJES
-    // =========================================================
+    val deleteSuccess: Boolean = false,
 
-    val successMessage: String? = null
+    // =========================
+    // CARGA DE UN REGISTRO
+    // =========================
+
+    val isLoadingEntity: Boolean = false,
+
+    val loadingEntityError: String? = null,
+
+    val selectedEntity: EntityType? = null
 )

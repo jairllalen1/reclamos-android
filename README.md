@@ -1,279 +1,313 @@
-FASE 13
-Errores / loading / lista vacía
-↓
-FASE 14
-Rotación / estado
-↓
-FASE 15
-Probar en tu Redmi
-↓
-FASE 16
-Corregir errores
-↓
-FASE 17
-Room opcional
-↓
-FASE 18
-Diseño visual final
-↓
-FASE 19
-Checklist 0–100
-↓
-FASE 20
-Preparación para la exposición
+## PLAN COMPLETO DEL PROYECTO
 
+### BLOQUE C — Persistencia local
 
+Acá entra lo que vos querés agregar.
 
+**Fase C1 — Room / SQLite**
 
-FASE 14
-Prueba real contra Spring Boot
+Vamos a incorporar:
 
-Vamos a levantar:
-
-reclamos-api
-
-y conectar:
-
-reclamos-android
-↓
-IP de tu PC
-↓
-Spring Boot :8080
-
-Ahí vamos a comprobar GET, POST, PUT y DELETE de verdad.
-
-FASE 15
-Prueba en tu Redmi
-
-No emulador.
-
-Tu teléfono real:
-
-Redmi
-↓
-Wi-Fi / hotspot
-↓
-PC
-↓
-Spring Boot
-FASE 16
-Corrección de errores
-
-Acá ya hacemos:
-
-Logcat
-Network Inspector
-errores HTTP
-errores Retrofit
-errores Compose
-errores de navegación
-
-El material considera justamente la observación del recorrido de red como parte importante del aprendizaje y debugging.
-
-FASE 17
-Room / SQLite
-
-Recién acá evaluamos si realmente nos conviene agregar:
-
+```text
 Room
-↓
+ ↓
 SQLite
+```
 
-como respaldo/local.
+con:
 
-No quiero meter Room antes de tener estable:
+```text
+EntityTypeEntity
+EntityTypeDao
+AppDatabase
+```
 
-Android → API → MySQL
-FASE 18
-Interfaz visual definitiva
+---
 
-Acá mejoramos:
+**Fase C2 — Caché local**
 
-colores
-iconos
-espaciado
-tipografía
-cards
-botones
-dialog
-loading
-empty state
-responsive
+Cuando hay Internet:
 
-Y recién acá tendría sentido pasar el proyecto por la revisión visual que querés hacer con las otras IAs.
+```text
+API → Room → UI
+```
 
-FASE 19
-Auditoría final
+Guardamos localmente los datos descargados.
 
-Acá vamos a construir una checklist basada literalmente en lo que pide el PDF:
+Cuando no hay Internet:
 
-CRUD
-ciclo de vida
-segundo plano
-errores
-diseño
-presentación
-FASE 20
-Preparación de exposición
+```text
+Room → UI
+```
 
-Vamos a preparar el recorrido:
+El usuario puede seguir viendo los últimos datos disponibles.
 
+Esto es una **mejora nuestra**; el PDF no exige CRUD offline completo.
+
+---
+
+**Fase C3 — Crear offline**
+
+Si no hay conexión:
+
+```text
+Crear
+ ↓
+SQLite
+ ↓
+Pendiente de sincronización
+```
+
+No intentamos fingir que el servidor confirmó la operación.
+
+---
+
+**Fase C4 — Modificar offline**
+
+```text
+Editar
+ ↓
+SQLite
+ ↓
+Pendiente de sincronización
+```
+
+---
+
+**Fase C5 — Eliminar offline**
+
+```text
+Eliminar
+ ↓
+SQLite
+ ↓
+Pendiente de sincronización
+```
+
+---
+
+**Fase C6 — Cola de sincronización**
+
+Cuando vuelva Internet:
+
+```text
+Internet vuelve
+      ↓
+Pendientes
+      ↓
+POST / PUT / DELETE
+      ↓
+Servidor
+      ↓
+marcar sincronizado
+```
+
+Acá tendremos que definir cómo manejar IDs, errores y posibles conflictos. Es la parte más compleja de la extensión offline, por lo que la vamos a hacer después de estabilizar Room.
+
+---
+
+### BLOQUE H — Verificación real
+
+Recién cuando todo el código esté terminado.
+
+**Fase H1 — GET**
+
+```text
+Android → Spring Boot → MySQL
+```
+
+**Fase H2 — POST**
+
+**Fase H3 — PUT**
+
+**Fase H4 — DELETE**
+
+**Fase H5 — Room**
+
+**Fase H6 — Offline**
+
+**Fase H7 — Sincronización**
+
+---
+
+### BLOQUE I — Pruebas de fallos
+
+Vamos a probar deliberadamente:
+
+```text
+sin Internet
+servidor apagado
+404
+400
+500
+lista vacía
+rotación
+doble toque
+cancelación
+timeout
+salir de pantalla
+```
+
+---
+
+### BLOQUE J — Tests
+
+Después del código funcional:
+
+```text
+Unit Tests
+ViewModel
+Validators
+Repository
+```
+
+Y los tests que tengan sentido para la lógica offline.
+
+---
+
+### BLOQUE K — Logcat / Network Inspector
+
+Vamos a preparar:
+
+```text
+GET
+POST
+PUT
+DELETE
+```
+
+para mostrar:
+
+```text
+request
+headers
+body
+status code
+response
+```
+
+El PDF pide explícitamente que puedas mostrar el request en Logcat.
+
+---
+
+### BLOQUE L — README.md
+
+Después de que todo funcione.
+
+El README tendrá:
+
+```text
+1. Descripción
+2. Tecnologías
+3. Arquitectura
+4. Estructura del proyecto
+5. Configuración
+6. Cómo levantar Spring Boot
+7. Cómo ejecutar Android
+8. BASE_URL
+9. Endpoints
+10. GET
+11. POST
+12. PUT
+13. DELETE
+14. Room/SQLite
+15. Offline
+16. Sincronización
+17. Errores
+18. Pruebas
+```
+
+---
+
+### BLOQUE M — Auditoría final
+
+Vamos a tomar los **17 puntos oficiales** del PDF y marcar:
+
+```text
+✅ Verificado
+🟡 Implementado, falta probar
+🔴 Falló
+⬜ Pendiente
+```
+
+Además revisaremos los seis criterios de evaluación: funcionalidad, ciclo de vida, segundo plano, errores, diseño del código y presentación oral.
+
+---
+
+### BLOQUE N — Exposición
+
+Finalmente:
+
+```text
 1. Listar
 2. Crear
 3. Modificar
 4. Eliminar
+```
 
-y además cómo explicar:
+y explicar:
 
-Usuario
-↓
+```text
+Botón
+ ↓
 Compose
-↓
+ ↓
 ViewModel
-↓
+ ↓
 Repository
-↓
+ ↓
 ApiService
-↓
+ ↓
 Retrofit
-↓
+ ↓
 Spring Boot
-↓
-Base de datos
+ ↓
+Service
+ ↓
+DAO
+ ↓
+MySQL
+```
 
-Porque el material dice expresamente que vas a tener que poder explicar el camino completo del dato, capa por capa.
+También prepararemos las respuestas de las 12 preguntas del PDF.
 
+---
 
+# El orden que vamos a seguir desde ahora
 
+Queda así:
 
+```text
+AHORA
+│
+├─ 1. Doble toque
+├─ 2. Confirmar Crear
+├─ 3. Confirmar Modificar
+├─ 4. Revisar Confirmar Eliminar
+├─ 5. Estados y errores
+├─ 6. Room / SQLite
+├─ 7. Caché local
+├─ 8. CRUD offline
+├─ 9. Sincronización
+├─ 10. Ciclo de vida
+├─ 11. Navegación
+├─ 12. Robustez
+│
+└─ TERMINAR TODO EL CÓDIGO
+          ↓
+    Interfaz definitiva
+          ↓
+        Pruebas
+          ↓
+        Tests
+          ↓
+       README
+          ↓
+       Auditoría
+          ↓
+      Exposición
+```
 
+Y una decisión importante: **no vamos a saltar todavía a la interfaz bonita ni al README**. Primero vamos a dejar **todo el comportamiento terminado y funcionando**.
 
-
-
-
-
-
-
-
-
-
-A. CRUD
-✅ Listar
-✅ Crear
-✅ Modificar
-✅ Eliminar
-
-B. Arquitectura
-✅ Model
-✅ API
-✅ Repository
-✅ ViewModel
-✅ UiState
-✅ Navigation
-✅ Compose
-
-C. Robustez
-✅ Loading
-✅ Error
-✅ Lista vacía
-✅ Reintento
-✅ Doble envío
-✅ Confirmación
-✅ Rotación preparada
-
-D. Persistencia local
-⬜ Room / SQLite
-
-E. Interfaz definitiva
-⬜ Diseño final
-⬜ Componentes visuales
-⬜ Estados visuales
-⬜ Pulido UX
-
-F. Pruebas
-⬜ API real
-⬜ Dispositivo real
-⬜ Logcat
-⬜ Network Inspector
-⬜ errores HTTP
-⬜ errores Retrofit
-⬜ errores Compose
-⬜ errores Navigation
-
-G. Calidad
-⬜ Tests
-⬜ Correcciones
-⬜ README.md
-⬜ Checklist final
-
-H. Presentación
-⬜ Recorrido CRUD
-⬜ Explicación HTTP
-⬜ Explicación arquitectura
-⬜ Camino capa por capa
-⬜ Ensayo
-
-
-
-Entonces el plan definitivo
-
-Queda:
-
-FASE 13
-✅ Robustez y requisitos
-↓
-FASE 14
-⬜ Integración real con Spring Boot
-↓
-FASE 15
-⬜ Prueba en dispositivo real
-↓
-FASE 16
-⬜ Debugging / Logcat / Network Inspector
-
-Pero vos querés terminar código antes, entonces hacemos:
-
-FASE 17
-⬅ Room / SQLite
-
-y después:
-
-FASE 18
-⬜ Interfaz visual definitiva
-
-Después:
-
-FASE 19
-⬜ Tests + correcciones
-FASE 20
-⬜ README.md / documentación
-FASE 21
-⬜ Auditoría final
-FASE 22
-⬜ Preparación de exposición
-
-
-
-
-
-CÓDIGO
-↓
-terminar funcionalidades
-↓
-SQLite / Room
-↓
-interfaz definitiva
-↓
-PRUEBAS
-↓
-corrección de errores
-↓
-tests
-↓
-README.md
-↓
-auditoría
-↓
-exposición
-
-Y no hacemos todavía la prueba real contra Spring Boot ni la prueba completa del teléfono.
+En el próximo mensaje arrancamos con **1. Doble toque + confirmaciones de Crear/Modificar/Eliminar**, y ahí sí te voy a dar los archivos completos que haya que reemplazar, listos para copiar y pegar.

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -56,10 +57,18 @@ fun EntityTypeFormScreen(
         .collectAsStateWithLifecycle()
 
     // =========================================================
-    // ESTADO DEL MENÚ DE TAMAÑO
+    // ESTADOS LOCALES DE CONFIRMACIÓN
     // =========================================================
 
     var sizeMenuExpanded by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showCreateConfirmation by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showUpdateConfirmation by rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -104,7 +113,7 @@ fun EntityTypeFormScreen(
     }
 
     // =========================================================
-    // SCAFFOLD
+    // PANTALLA
     // =========================================================
 
     Scaffold(
@@ -150,7 +159,7 @@ fun EntityTypeFormScreen(
     ) { innerPadding ->
 
         // =====================================================
-        // CARGANDO REGISTRO PARA EDITAR
+        // CARGANDO EDICIÓN
         // =====================================================
 
         if (
@@ -191,7 +200,7 @@ fun EntityTypeFormScreen(
         } else {
 
             // =================================================
-            // CONTENIDO
+            // FORMULARIO
             // =================================================
 
             Column(
@@ -207,10 +216,6 @@ fun EntityTypeFormScreen(
                 verticalArrangement =
                     Arrangement.spacedBy(16.dp)
             ) {
-
-                // =============================================
-                // TÍTULO
-                // =============================================
 
                 Text(
 
@@ -238,14 +243,14 @@ fun EntityTypeFormScreen(
                 )
 
                 // =============================================
-                // ERROR GENERAL DE CARGA
+                // ERROR DE CARGA EN EDICIÓN
                 // =============================================
 
                 if (
-                    uiState.errorMessage != null &&
-                    uiState.editingEntityType == null &&
                     isEditing &&
-                    !uiState.isSaving
+                    uiState.editingEntityType == null &&
+                    !uiState.errorMessage.isNullOrBlank() &&
+                    !uiState.isLoading
                 ) {
 
                     Text(
@@ -264,11 +269,14 @@ fun EntityTypeFormScreen(
 
                         onClick = {
 
-                            if (entityTypeId != null) {
+                            if (
+                                entityTypeId != null
+                            ) {
 
-                                viewModel.loadEntityTypeById(
-                                    entityTypeId
-                                )
+                                viewModel
+                                    .loadEntityTypeById(
+                                        entityTypeId
+                                    )
                             }
                         }
 
@@ -290,15 +298,17 @@ fun EntityTypeFormScreen(
                         uiState.nameTypeEntity,
 
                     onValueChange = {
-                        viewModel.updateNameTypeEntity(
-                            it
-                        )
+                        viewModel
+                            .updateNameTypeEntity(
+                                it
+                            )
                     },
 
                     modifier =
                         Modifier.fillMaxWidth(),
 
                     label = {
+
                         Text(
                             text =
                                 "Nombre del tipo de entidad"
@@ -306,6 +316,7 @@ fun EntityTypeFormScreen(
                     },
 
                     placeholder = {
+
                         Text(
                             text =
                                 "Ej. Comercio"
@@ -363,12 +374,14 @@ fun EntityTypeFormScreen(
                             Modifier.fillMaxWidth(),
 
                         label = {
+
                             Text(
                                 text = "Tamaño"
                             )
                         },
 
                         placeholder = {
+
                             Text(
                                 text =
                                     "Seleccioná un tamaño"
@@ -386,8 +399,11 @@ fun EntityTypeFormScreen(
                         trailingIcon = {
 
                             Text(
+
                                 text =
-                                    if (sizeMenuExpanded) {
+                                    if (
+                                        sizeMenuExpanded
+                                    ) {
                                         "▲"
                                     } else {
                                         "▼"
@@ -421,6 +437,7 @@ fun EntityTypeFormScreen(
                             sizeMenuExpanded,
 
                         onDismissRequest = {
+
                             sizeMenuExpanded =
                                 false
                         },
@@ -432,6 +449,7 @@ fun EntityTypeFormScreen(
                         DropdownMenuItem(
 
                             text = {
+
                                 Text(
                                     text =
                                         "Pequeña"
@@ -440,9 +458,10 @@ fun EntityTypeFormScreen(
 
                             onClick = {
 
-                                viewModel.updateEntitySize(
-                                    "Pequeña"
-                                )
+                                viewModel
+                                    .updateEntitySize(
+                                        "Pequeña"
+                                    )
 
                                 sizeMenuExpanded =
                                     false
@@ -452,6 +471,7 @@ fun EntityTypeFormScreen(
                         DropdownMenuItem(
 
                             text = {
+
                                 Text(
                                     text =
                                         "Mediana"
@@ -460,9 +480,10 @@ fun EntityTypeFormScreen(
 
                             onClick = {
 
-                                viewModel.updateEntitySize(
-                                    "Mediana"
-                                )
+                                viewModel
+                                    .updateEntitySize(
+                                        "Mediana"
+                                    )
 
                                 sizeMenuExpanded =
                                     false
@@ -472,6 +493,7 @@ fun EntityTypeFormScreen(
                         DropdownMenuItem(
 
                             text = {
+
                                 Text(
                                     text =
                                         "Grande"
@@ -480,9 +502,10 @@ fun EntityTypeFormScreen(
 
                             onClick = {
 
-                                viewModel.updateEntitySize(
-                                    "Grande"
-                                )
+                                viewModel
+                                    .updateEntitySize(
+                                        "Grande"
+                                    )
 
                                 sizeMenuExpanded =
                                     false
@@ -523,21 +546,22 @@ fun EntityTypeFormScreen(
                         uiState.sector,
 
                     onValueChange = {
-                        viewModel.updateSector(
-                            it
-                        )
+                        viewModel
+                            .updateSector(it)
                     },
 
                     modifier =
                         Modifier.fillMaxWidth(),
 
                     label = {
+
                         Text(
                             text = "Sector"
                         )
                     },
 
                     placeholder = {
+
                         Text(
                             text =
                                 "Ej. Comercio"
@@ -576,7 +600,7 @@ fun EntityTypeFormScreen(
                 }
 
                 // =============================================
-                // ERROR GENERAL DE API
+                // ERROR GENERAL
                 // =============================================
 
                 if (
@@ -584,8 +608,7 @@ fun EntityTypeFormScreen(
                         .isNullOrBlank() &&
                     !(
                             isEditing &&
-                                    uiState.editingEntityType == null &&
-                                    !uiState.isSaving
+                                    uiState.editingEntityType == null
                             )
                 ) {
 
@@ -617,8 +640,7 @@ fun EntityTypeFormScreen(
 
                     TextButton(
 
-                        onClick =
-                            onBack,
+                        onClick = onBack,
 
                         enabled =
                             !uiState.isSaving,
@@ -636,19 +658,20 @@ fun EntityTypeFormScreen(
 
                         onClick = {
 
+                            if (uiState.isSaving) {
+                                return@Button
+                            }
+
+                            // Primero abrimos confirmación.
                             if (isEditing) {
 
-                                viewModel.updateEntityType(
-                                    idUserUpdate =
-                                        CURRENT_USER_ID
-                                )
+                                showUpdateConfirmation =
+                                    true
 
                             } else {
 
-                                viewModel.createEntityType(
-                                    idUserCreate =
-                                        CURRENT_USER_ID
-                                )
+                                showCreateConfirmation =
+                                    true
                             }
                         },
 
@@ -662,42 +685,13 @@ fun EntityTypeFormScreen(
 
                         if (uiState.isSaving) {
 
-                            Row(
+                            CircularProgressIndicator(
 
-                                verticalAlignment =
-                                    Alignment.CenterVertically,
+                                modifier =
+                                    Modifier.height(20.dp),
 
-                                horizontalArrangement =
-                                    Arrangement.Center
-                            ) {
-
-                                CircularProgressIndicator(
-
-                                    modifier =
-                                        Modifier
-                                            .height(20.dp),
-
-                                    strokeWidth =
-                                        2.dp
-                                )
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.padding(
-                                            horizontal = 4.dp
-                                        )
-                                )
-
-                                Text(
-
-                                    text =
-                                        if (isEditing) {
-                                            "Actualizando..."
-                                        } else {
-                                            "Creando..."
-                                        }
-                                )
-                            }
+                                strokeWidth = 2.dp
+                            )
 
                         } else {
 
@@ -715,5 +709,221 @@ fun EntityTypeFormScreen(
                 }
             }
         }
+    }
+
+    // =========================================================
+    // DIÁLOGO CONFIRMAR CREACIÓN
+    // =========================================================
+
+    if (showCreateConfirmation) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                if (!uiState.isSaving) {
+
+                    showCreateConfirmation =
+                        false
+                }
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "Confirmar creación"
+                )
+            },
+
+            text = {
+
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+
+                    Text(
+                        text =
+                            "¿Querés crear este tipo de entidad?"
+                    )
+
+                    Text(
+                        text =
+                            "Nombre: ${uiState.nameTypeEntity}"
+                    )
+
+                    Text(
+                        text =
+                            "Tamaño: ${uiState.entitySize}"
+                    )
+
+                    Text(
+                        text =
+                            "Sector: ${uiState.sector}"
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+
+                    onClick = {
+
+                        if (uiState.isSaving) {
+                            return@Button
+                        }
+
+                        showCreateConfirmation =
+                            false
+
+                        viewModel.createEntityType(
+                            idUserCreate =
+                                CURRENT_USER_ID
+                        )
+                    },
+
+                    enabled =
+                        !uiState.isSaving
+                ) {
+
+                    Text(
+                        text = "Crear"
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        if (!uiState.isSaving) {
+
+                            showCreateConfirmation =
+                                false
+                        }
+                    },
+
+                    enabled =
+                        !uiState.isSaving
+                ) {
+
+                    Text(
+                        text = "Cancelar"
+                    )
+                }
+            }
+        )
+    }
+
+    // =========================================================
+    // DIÁLOGO CONFIRMAR ACTUALIZACIÓN
+    // =========================================================
+
+    if (showUpdateConfirmation) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                if (!uiState.isSaving) {
+
+                    showUpdateConfirmation =
+                        false
+                }
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "Confirmar cambios"
+                )
+            },
+
+            text = {
+
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+
+                    Text(
+                        text =
+                            "¿Querés actualizar este tipo de entidad?"
+                    )
+
+                    Text(
+                        text =
+                            "Nombre: ${uiState.nameTypeEntity}"
+                    )
+
+                    Text(
+                        text =
+                            "Tamaño: ${uiState.entitySize}"
+                    )
+
+                    Text(
+                        text =
+                            "Sector: ${uiState.sector}"
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+
+                    onClick = {
+
+                        if (uiState.isSaving) {
+                            return@Button
+                        }
+
+                        showUpdateConfirmation =
+                            false
+
+                        viewModel.updateEntityType(
+                            idUserUpdate =
+                                CURRENT_USER_ID
+                        )
+                    },
+
+                    enabled =
+                        !uiState.isSaving
+                ) {
+
+                    Text(
+                        text = "Actualizar"
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        if (!uiState.isSaving) {
+
+                            showUpdateConfirmation =
+                                false
+                        }
+                    },
+
+                    enabled =
+                        !uiState.isSaving
+                ) {
+
+                    Text(
+                        text = "Cancelar"
+                    )
+                }
+            }
+        )
     }
 }

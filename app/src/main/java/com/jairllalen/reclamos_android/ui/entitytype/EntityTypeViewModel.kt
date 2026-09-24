@@ -2,7 +2,6 @@ package com.jairllalen.reclamos_android.ui.entitytype
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jairllalen.reclamos_android.data.model.EntityType
 import com.jairllalen.reclamos_android.data.model.EntityTypeCreateRequest
 import com.jairllalen.reclamos_android.data.model.EntityTypeUpdateRequest
 import com.jairllalen.reclamos_android.data.remote.NetworkResult
@@ -13,49 +12,43 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class EntityTypeViewModel(
-    private val repository: EntityTypeRepository = EntityTypeRepository()
+    private val repository: EntityTypeRepository
 ) : ViewModel() {
 
-    // =========================================================
-    // ESTADO
-    // =========================================================
+    companion object {
+        private const val CURRENT_USER_ID = 1
+        private const val MAX_FIELD_LENGTH = 45
+    }
 
-    private val _uiState = MutableStateFlow(
-        EntityTypeUiState()
-    )
-
-    val uiState: StateFlow<EntityTypeUiState> =
-        _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(EntityTypeUiState())
+    val uiState: StateFlow<EntityTypeUiState> = _uiState.asStateFlow()
 
 
-    // =========================================================
+    // ============================================================
     // LISTAR
-    // =========================================================
+    // ============================================================
 
-    fun loadEntityTypes() {
+    fun loadEntities() {
 
-        // Evita iniciar otra carga mientras una ya está en curso.
+        // Evita lanzar otra petición mientras ya existe una en curso.
         if (_uiState.value.isLoading) {
             return
         }
 
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            errorMessage = null
+        )
+
         viewModelScope.launch {
 
-            _uiState.value = _uiState.value.copy(
-                isLoading = true,
-                errorMessage = null,
-                successMessage = null
-            )
-
-            when (
-                val result = repository.getAllEntityTypes()
-            ) {
+            when (val result = repository.getAll()) {
 
                 is NetworkResult.Success -> {
 
                     _uiState.value = _uiState.value.copy(
-                        entityTypes = result.data,
                         isLoading = false,
+                        entities = result.data,
                         errorMessage = null
                     )
                 }
@@ -75,8 +68,7 @@ class EntityTypeViewModel(
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage =
-                            "No se pudo conectar con el servidor."
+                        errorMessage = "No se puede conectar con el servidor."
                     )
                 }
 
@@ -84,8 +76,7 @@ class EntityTypeViewModel(
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage =
-                            "Ocurrió un error inesperado."
+                        errorMessage = "Ocurrió un error inesperado."
                     )
                 }
             }
@@ -93,55 +84,40 @@ class EntityTypeViewModel(
     }
 
 
-    // =========================================================
-    // OBTENER UNO
-    // =========================================================
+    // ============================================================
+    // OBTENER POR ID
+    // ============================================================
 
-    fun loadEntityTypeById(id: Int) {
+    fun loadEntity(id: Int) {
+
+        if (_uiState.value.isLoadingEntity) {
+            return
+        }
+
+        _uiState.value = _uiState.value.copy(
+            isLoadingEntity = true,
+            loadingEntityError = null,
+            selectedEntity = null
+        )
 
         viewModelScope.launch {
 
-            _uiState.value = _uiState.value.copy(
-                isLoading = true,
-                errorMessage = null,
-                successMessage = null
-            )
-
-            when (
-                val result = repository.getEntityTypeById(id)
-            ) {
+            when (val result = repository.getById(id)) {
 
                 is NetworkResult.Success -> {
 
-                    val entityType = result.data
-
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-
-                        editingEntityType = entityType,
-
-                        nameTypeEntity =
-                            entityType.nameTypeEntity,
-
-                        entitySize =
-                            entityType.entitySize,
-
-                        sector =
-                            entityType.sector,
-
-                        nameError = null,
-                        sizeError = null,
-                        sectorError = null,
-
-                        errorMessage = null
+                        isLoadingEntity = false,
+                        selectedEntity = result.data,
+                        loadingEntityError = null
                     )
                 }
 
                 is NetworkResult.HttpError -> {
 
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = buildHttpErrorMessage(
+                        isLoadingEntity = false,
+                        loadingEntityError = buildHttpErrorMessage(
                             result.code,
                             result.message
                         )
@@ -151,17 +127,17 @@ class EntityTypeViewModel(
                 is NetworkResult.NetworkError -> {
 
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage =
-                            "No se pudo conectar con el servidor."
+                        isLoadingEntity = false,
+                        loadingEntityError =
+                            "No se puede conectar con el servidor."
                     )
                 }
 
                 is NetworkResult.UnknownError -> {
 
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage =
+                        isLoadingEntity = false,
+                        loadingEntityError =
                             "Ocurrió un error inesperado."
                     )
                 }
@@ -170,248 +146,91 @@ class EntityTypeViewModel(
     }
 
 
-    // =========================================================
-    // FORMULARIO - CREAR
-    // =========================================================
-
-    fun startCreate() {
-
-        _uiState.value = _uiState.value.copy(
-
-            editingEntityType = null,
-
-            nameTypeEntity = "",
-
-            entitySize = "",
-
-            sector = "",
-
-            nameError = null,
-
-            sizeError = null,
-
-            sectorError = null,
-
-            errorMessage = null,
-
-            successMessage = null,
-
-            isSaving = false,
-
-            isDeleting = false
-        )
-    }
-
-
-    // =========================================================
-    // FORMULARIO - EDITAR
-    // =========================================================
-
-    fun startEdit(entityType: EntityType) {
-
-        _uiState.value = _uiState.value.copy(
-
-            editingEntityType = entityType,
-
-            nameTypeEntity =
-                entityType.nameTypeEntity,
-
-            entitySize =
-                entityType.entitySize,
-
-            sector =
-                entityType.sector,
-
-            nameError = null,
-
-            sizeError = null,
-
-            sectorError = null,
-
-            errorMessage = null,
-
-            successMessage = null
-        )
-    }
-
-
-    // =========================================================
-    // CAMPO NOMBRE
-    // =========================================================
-
-    fun updateNameTypeEntity(value: String) {
-
-        _uiState.value = _uiState.value.copy(
-
-            nameTypeEntity = value,
-
-            nameError = null,
-
-            errorMessage = null
-        )
-    }
-
-
-    // =========================================================
-    // CAMPO TAMAÑO
-    // =========================================================
-
-    fun updateEntitySize(value: String) {
-
-        _uiState.value = _uiState.value.copy(
-
-            entitySize = value,
-
-            sizeError = null,
-
-            errorMessage = null
-        )
-    }
-
-
-    // =========================================================
-    // CAMPO SECTOR
-    // =========================================================
-
-    fun updateSector(value: String) {
-
-        _uiState.value = _uiState.value.copy(
-
-            sector = value,
-
-            sectorError = null,
-
-            errorMessage = null
-        )
-    }
-
-
-    // =========================================================
+    // ============================================================
     // CREAR
-    // =========================================================
+    // ============================================================
 
-    fun createEntityType(idUserCreate: Int) {
-
-        // -----------------------------------------------------
-        // BLOQUEO INMEDIATO CONTRA DOBLE TOQUE
-        // -----------------------------------------------------
+    fun createEntity(
+        name: String,
+        size: String,
+        sector: String
+    ) {
 
         if (_uiState.value.isSaving) {
             return
         }
 
-        val currentState = _uiState.value
+        val validationError = validateFields(
+            name = name,
+            size = size,
+            sector = sector
+        )
 
-        val name =
-            currentState.nameTypeEntity.trim()
+        if (validationError != null) {
 
-        val size =
-            currentState.entitySize.trim()
-
-        val sector =
-            currentState.sector.trim()
-
-        // -----------------------------------------------------
-        // VALIDACIÓN
-        // -----------------------------------------------------
-
-        if (
-            !validateForm(
-                name = name,
-                size = size,
-                sector = sector
+            _uiState.value = _uiState.value.copy(
+                saveErrorMessage = validationError
             )
-        ) {
+
             return
         }
 
-        // -----------------------------------------------------
-        // BLOQUEAMOS ANTES DE LA COROUTINE
-        // -----------------------------------------------------
-
         _uiState.value = _uiState.value.copy(
-
             isSaving = true,
-
-            errorMessage = null,
-
-            successMessage = null
+            saveErrorMessage = null,
+            saveSuccess = false
         )
-
-        // -----------------------------------------------------
-        // PETICIÓN
-        // -----------------------------------------------------
 
         viewModelScope.launch {
 
             val request = EntityTypeCreateRequest(
-
-                nameTypeEntity = name,
-
-                entitySize = size,
-
-                sector = sector,
-
-                idUserCreate = idUserCreate
+                nameTypeEntity = name.trim(),
+                entitySize = size.trim(),
+                sector = sector.trim(),
+                idUserCreate = CURRENT_USER_ID
             )
 
-            when (
-                val result =
-                    repository.createEntityType(request)
-            ) {
+            when (val result = repository.create(request)) {
 
                 is NetworkResult.Success -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        successMessage =
-                            "Tipo de entidad creado correctamente.",
-
-                        errorMessage = null
+                        saveSuccess = true,
+                        saveErrorMessage = null
                     )
                 }
 
                 is NetworkResult.HttpError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        errorMessage =
+                        saveSuccess = false,
+                        saveErrorMessage =
                             buildHttpErrorMessage(
                                 result.code,
                                 result.message
-                            ),
-
-                        successMessage = null
+                            )
                     )
                 }
 
                 is NetworkResult.NetworkError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        errorMessage =
-                            "No se pudo conectar con el servidor.",
-
-                        successMessage = null
+                        saveSuccess = false,
+                        saveErrorMessage =
+                            "No se puede conectar con el servidor."
                     )
                 }
 
                 is NetworkResult.UnknownError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        errorMessage =
-                            "Ocurrió un error inesperado.",
-
-                        successMessage = null
+                        saveSuccess = false,
+                        saveErrorMessage =
+                            "Ocurrió un error inesperado."
                     )
                 }
             }
@@ -419,149 +238,92 @@ class EntityTypeViewModel(
     }
 
 
-    // =========================================================
-    // ACTUALIZAR
-    // =========================================================
+    // ============================================================
+    // MODIFICAR
+    // ============================================================
 
-    fun updateEntityType(idUserUpdate: Int) {
-
-        // -----------------------------------------------------
-        // BLOQUEO INMEDIATO CONTRA DOBLE TOQUE
-        // -----------------------------------------------------
+    fun updateEntity(
+        id: Int,
+        name: String,
+        size: String,
+        sector: String
+    ) {
 
         if (_uiState.value.isSaving) {
             return
         }
 
-        val currentState = _uiState.value
-
-        val entityType =
-            currentState.editingEntityType
-
-        if (entityType == null) {
-
-            _uiState.value = _uiState.value.copy(
-
-                errorMessage =
-                    "No se encontró el tipo de entidad que se desea editar."
-            )
-
-            return
-        }
-
-        val name =
-            currentState.nameTypeEntity.trim()
-
-        val size =
-            currentState.entitySize.trim()
-
-        val sector =
-            currentState.sector.trim()
-
-        // -----------------------------------------------------
-        // VALIDACIÓN
-        // -----------------------------------------------------
-
-        if (
-            !validateForm(
-                name = name,
-                size = size,
-                sector = sector
-            )
-        ) {
-            return
-        }
-
-        // -----------------------------------------------------
-        // BLOQUEAMOS ANTES DE LA COROUTINE
-        // -----------------------------------------------------
-
-        _uiState.value = _uiState.value.copy(
-
-            isSaving = true,
-
-            errorMessage = null,
-
-            successMessage = null
+        val validationError = validateFields(
+            name = name,
+            size = size,
+            sector = sector
         )
 
-        // -----------------------------------------------------
-        // PETICIÓN
-        // -----------------------------------------------------
+        if (validationError != null) {
+
+            _uiState.value = _uiState.value.copy(
+                saveErrorMessage = validationError
+            )
+
+            return
+        }
+
+        _uiState.value = _uiState.value.copy(
+            isSaving = true,
+            saveErrorMessage = null,
+            saveSuccess = false
+        )
 
         viewModelScope.launch {
 
             val request = EntityTypeUpdateRequest(
-
-                nameTypeEntity = name,
-
-                entitySize = size,
-
-                sector = sector,
-
-                idUserUpdate = idUserUpdate
+                nameTypeEntity = name.trim(),
+                entitySize = size.trim(),
+                sector = sector.trim(),
+                idUserUpdate = CURRENT_USER_ID
             )
 
-            when (
-                val result =
-                    repository.updateEntityType(
-                        id = entityType.idEntityType,
-                        request = request
-                    )
-            ) {
+            when (val result = repository.update(id, request)) {
 
                 is NetworkResult.Success -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        successMessage =
-                            "Tipo de entidad actualizado correctamente.",
-
-                        errorMessage = null
+                        saveSuccess = true,
+                        saveErrorMessage = null
                     )
                 }
 
                 is NetworkResult.HttpError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        errorMessage =
+                        saveSuccess = false,
+                        saveErrorMessage =
                             buildHttpErrorMessage(
                                 result.code,
                                 result.message
-                            ),
-
-                        successMessage = null
+                            )
                     )
                 }
 
                 is NetworkResult.NetworkError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        errorMessage =
-                            "No se pudo conectar con el servidor.",
-
-                        successMessage = null
+                        saveSuccess = false,
+                        saveErrorMessage =
+                            "No se puede conectar con el servidor."
                     )
                 }
 
                 is NetworkResult.UnknownError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isSaving = false,
-
-                        errorMessage =
-                            "Ocurrió un error inesperado.",
-
-                        successMessage = null
+                        saveSuccess = false,
+                        saveErrorMessage =
+                            "Ocurrió un error inesperado."
                     )
                 }
             }
@@ -569,149 +331,71 @@ class EntityTypeViewModel(
     }
 
 
-    // =========================================================
-    // SOLICITAR ELIMINACIÓN
-    // =========================================================
-
-    fun requestDelete(entityType: EntityType) {
-
-        _uiState.value = _uiState.value.copy(
-
-            entityTypeToDelete = entityType,
-
-            errorMessage = null
-        )
-    }
-
-
-    // =========================================================
-    // CANCELAR ELIMINACIÓN
-    // =========================================================
-
-    fun cancelDelete() {
-
-        if (_uiState.value.isDeleting) {
-            return
-        }
-
-        _uiState.value = _uiState.value.copy(
-
-            entityTypeToDelete = null
-        )
-    }
-
-
-    // =========================================================
+    // ============================================================
     // ELIMINAR
-    // =========================================================
+    // ============================================================
 
-    fun deleteEntityType() {
-
-        // -----------------------------------------------------
-        // BLOQUEO INMEDIATO CONTRA DOBLE TOQUE
-        // -----------------------------------------------------
+    fun deleteEntity(id: Int) {
 
         if (_uiState.value.isDeleting) {
             return
         }
 
-        val currentState = _uiState.value
-
-        val entityType =
-            currentState.entityTypeToDelete
-
-        if (entityType == null) {
-            return
-        }
-
-        // -----------------------------------------------------
-        // BLOQUEAMOS ANTES DE LA COROUTINE
-        // -----------------------------------------------------
-
         _uiState.value = _uiState.value.copy(
-
             isDeleting = true,
-
-            errorMessage = null,
-
-            successMessage = null
+            deleteErrorMessage = null,
+            deleteSuccess = false
         )
-
-        // -----------------------------------------------------
-        // PETICIÓN
-        // -----------------------------------------------------
 
         viewModelScope.launch {
 
-            when (
-                val result =
-                    repository.deleteEntityType(
-                        entityType.idEntityType
-                    )
-            ) {
+            when (val result = repository.delete(id)) {
 
                 is NetworkResult.Success -> {
 
-                    val updatedList =
-                        _uiState.value.entityTypes.filter {
-                            it.idEntityType !=
-                                    entityType.idEntityType
-                        }
-
                     _uiState.value = _uiState.value.copy(
-
-                        entityTypes = updatedList,
-
                         isDeleting = false,
+                        deleteSuccess = true,
+                        deleteErrorMessage = null,
 
-                        entityTypeToDelete = null,
-
-                        successMessage =
-                            "Tipo de entidad eliminado correctamente.",
-
-                        errorMessage = null
+                        // Eliminamos inmediatamente el registro
+                        // de la lista local.
+                        entities = _uiState.value.entities.filter {
+                            it.idEntityType != id
+                        }
                     )
                 }
 
                 is NetworkResult.HttpError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isDeleting = false,
-
-                        errorMessage =
+                        deleteSuccess = false,
+                        deleteErrorMessage =
                             buildHttpErrorMessage(
                                 result.code,
                                 result.message
-                            ),
-
-                        successMessage = null
+                            )
                     )
                 }
 
                 is NetworkResult.NetworkError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isDeleting = false,
-
-                        errorMessage =
-                            "No se pudo conectar con el servidor.",
-
-                        successMessage = null
+                        deleteSuccess = false,
+                        deleteErrorMessage =
+                            "No se puede conectar con el servidor."
                     )
                 }
 
                 is NetworkResult.UnknownError -> {
 
                     _uiState.value = _uiState.value.copy(
-
                         isDeleting = false,
-
-                        errorMessage =
-                            "Ocurrió un error inesperado.",
-
-                        successMessage = null
+                        deleteSuccess = false,
+                        deleteErrorMessage =
+                            "Ocurrió un error inesperado."
                     )
                 }
             }
@@ -719,151 +403,103 @@ class EntityTypeViewModel(
     }
 
 
-    // =========================================================
-    // VALIDACIÓN
-    // =========================================================
+    // ============================================================
+    // LIMPIAR MENSAJES
+    // ============================================================
 
-    private fun validateForm(
+    fun clearSaveMessage() {
+
+        _uiState.value = _uiState.value.copy(
+            saveErrorMessage = null,
+            saveSuccess = false
+        )
+    }
+
+    fun clearDeleteMessage() {
+
+        _uiState.value = _uiState.value.copy(
+            deleteErrorMessage = null,
+            deleteSuccess = false
+        )
+    }
+
+    fun clearLoadingEntityError() {
+
+        _uiState.value = _uiState.value.copy(
+            loadingEntityError = null
+        )
+    }
+
+
+    // ============================================================
+    // VALIDACIÓN
+    // ============================================================
+
+    private fun validateFields(
         name: String,
         size: String,
         sector: String
-    ): Boolean {
-
-        var isValid = true
-
-        var nameError: String? = null
-
-        var sizeError: String? = null
-
-        var sectorError: String? = null
-
-
-        // -----------------------------------------------------
-        // NOMBRE
-        // -----------------------------------------------------
+    ): String? {
 
         if (name.isBlank()) {
-
-            nameError =
-                "El nombre del tipo de entidad es obligatorio."
-
-            isValid = false
-
-        } else if (name.length > 45) {
-
-            nameError =
-                "El nombre no puede superar los 45 caracteres."
-
-            isValid = false
+            return "El nombre de la entidad es obligatorio."
         }
-
-
-        // -----------------------------------------------------
-        // TAMAÑO
-        // -----------------------------------------------------
 
         if (size.isBlank()) {
-
-            sizeError =
-                "El tamaño de la entidad es obligatorio."
-
-            isValid = false
-
-        } else if (size.length > 45) {
-
-            sizeError =
-                "El tamaño no puede superar los 45 caracteres."
-
-            isValid = false
+            return "El tamaño de la entidad es obligatorio."
         }
-
-
-        // -----------------------------------------------------
-        // SECTOR
-        // -----------------------------------------------------
 
         if (sector.isBlank()) {
-
-            sectorError =
-                "El sector es obligatorio."
-
-            isValid = false
-
-        } else if (sector.length > 45) {
-
-            sectorError =
-                "El sector no puede superar los 45 caracteres."
-
-            isValid = false
+            return "El sector de la entidad es obligatorio."
         }
 
+        if (name.length > MAX_FIELD_LENGTH) {
+            return "El nombre no puede superar los $MAX_FIELD_LENGTH caracteres."
+        }
 
-        _uiState.value = _uiState.value.copy(
+        if (size.length > MAX_FIELD_LENGTH) {
+            return "El tamaño no puede superar los $MAX_FIELD_LENGTH caracteres."
+        }
 
-            nameError = nameError,
+        if (sector.length > MAX_FIELD_LENGTH) {
+            return "El sector no puede superar los $MAX_FIELD_LENGTH caracteres."
+        }
 
-            sizeError = sizeError,
-
-            sectorError = sectorError
-        )
-
-        return isValid
+        return null
     }
 
 
-    // =========================================================
-    // LIMPIAR MENSAJES
-    // =========================================================
-
-    fun clearMessages() {
-
-        _uiState.value = _uiState.value.copy(
-
-            errorMessage = null,
-
-            successMessage = null
-        )
-    }
-
-
-    // =========================================================
+    // ============================================================
     // MENSAJES HTTP
-    // =========================================================
+    // ============================================================
 
     private fun buildHttpErrorMessage(
         code: Int,
-        message: String?
+        serverMessage: String
     ): String {
 
         return when (code) {
 
             400 ->
-                message
-                    ?: "La información enviada no es válida."
+                "Los datos enviados no son válidos."
 
             401 ->
-                "No estás autenticado."
+                "No autorizado. Verificá tus credenciales."
 
             403 ->
-                "No tenés permiso para realizar esta operación."
+                "No tenés permisos para realizar esta operación."
 
             404 ->
-                message
-                    ?: "No se encontró el tipo de entidad."
+                "El recurso solicitado no existe."
 
             409 ->
-                message
-                    ?: "La operación entra en conflicto con los datos existentes."
+                "No se puede realizar la operación porque existe un conflicto."
 
             500 ->
                 "El servidor encontró un error interno."
 
-            503 ->
-                "El servidor no está disponible."
-
             else ->
-                message
-                    ?: "La solicitud falló. Código HTTP: $code"
+                "Error del servidor (HTTP $code)."
         }
     }
 }

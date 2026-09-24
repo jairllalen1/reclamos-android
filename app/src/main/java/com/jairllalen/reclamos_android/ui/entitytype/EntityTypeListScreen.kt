@@ -10,16 +10,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -31,481 +36,300 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.material3.ExperimentalMaterial3Api
+import com.jairllalen.reclamos_android.data.model.EntityType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntityTypeListScreen(
     onCreate: () -> Unit,
     onEdit: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-
-    // =========================================================
-    // VIEWMODEL
-    // =========================================================
-
-    val viewModel: EntityTypeViewModel = viewModel(
+    viewModel: EntityTypeViewModel = viewModel(
         factory = EntityTypeViewModelFactory()
     )
+) {
 
-    val uiState by viewModel.uiState
-        .collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // =========================================================
-    // SNACKBAR
-    // =========================================================
-
-    val snackbarHostState =
-        remember {
-            SnackbarHostState()
-        }
-
-    // =========================================================
-    // BÚSQUEDA
-    // =========================================================
-
-    var searchQuery by rememberSaveable {
+    var searchText by remember {
         mutableStateOf("")
     }
 
-    // =========================================================
-    // CICLO DE VIDA
-    // =========================================================
-
-    /*
-     * Se ejecuta al entrar en primer plano.
-     *
-     * Esto hace que:
-     *
-     * Lista
-     *   ↓
-     * Formulario
-     *   ↓
-     * Volver
-     *   ↓
-     * ON_RESUME
-     *   ↓
-     * GET actualizado
-     *
-     * LifecycleEventEffect es la API de Compose para reaccionar
-     * a un evento puntual del ciclo de vida.
-     */
-    LifecycleEventEffect(
-        event = Lifecycle.Event.ON_RESUME
-    ) {
-
-        viewModel.loadEntityTypes()
+    var entityToDelete by remember {
+        mutableStateOf<EntityType?>(null)
     }
 
-    // =========================================================
-    // MENSAJE DE ÉXITO
-    // =========================================================
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
 
-    LaunchedEffect(uiState.successMessage) {
 
-        val message =
-            uiState.successMessage
+    // ============================================================
+    // CARGA INICIAL / REGRESO A LA PANTALLA
+    // ============================================================
 
-        if (!message.isNullOrBlank()) {
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+
+        if (!uiState.isLoading) {
+            viewModel.loadEntities()
+        }
+    }
+
+
+    // ============================================================
+    // MENSAJES DE ÉXITO
+    // ============================================================
+
+    LaunchedEffect(uiState.deleteSuccess) {
+
+        if (uiState.deleteSuccess) {
 
             snackbarHostState.showSnackbar(
-                message = message
+                "Registro eliminado correctamente."
             )
 
-            viewModel.clearMessages()
+            viewModel.clearDeleteMessage()
         }
     }
 
-    // =========================================================
+
+    // ============================================================
     // FILTRADO
-    // =========================================================
+    // ============================================================
 
-    val filteredEntityTypes =
-        remember(
-            uiState.entityTypes,
-            searchQuery
-        ) {
+    val filteredEntities = uiState.entities.filter { entity ->
 
-            val query =
-                searchQuery.trim()
+        val query = searchText.trim()
 
-            if (query.isBlank()) {
+        if (query.isEmpty()) {
+            true
+        } else {
 
-                uiState.entityTypes
+            entity.idEntityType.toString()
+                .contains(query, ignoreCase = true) ||
 
-            } else {
+                    entity.nameTypeEntity.contains(
+                        query,
+                        ignoreCase = true
+                    ) ||
 
-                uiState.entityTypes.filter { entityType ->
+                    entity.entitySize.contains(
+                        query,
+                        ignoreCase = true
+                    ) ||
 
-                    entityType.nameTypeEntity
-                        .contains(
-                            query,
-                            ignoreCase = true
-                        ) ||
-
-                            entityType.entitySize
-                                .contains(
-                                    query,
-                                    ignoreCase = true
-                                ) ||
-
-                            entityType.sector
-                                .contains(
-                                    query,
-                                    ignoreCase = true
-                                ) ||
-
-                            entityType.idEntityType
-                                .toString()
-                                .contains(query)
-                }
-            }
+                    entity.sector.contains(
+                        query,
+                        ignoreCase = true
+                    )
         }
+    }
 
-    // =========================================================
-    // SCAFFOLD
-    // =========================================================
 
     Scaffold(
-
-        modifier = modifier.fillMaxSize(),
 
         topBar = {
 
             TopAppBar(
 
                 title = {
-                    Text(
-                        text = "Tipos de entidad"
-                    )
+                    Text("Tipos de entidad")
                 },
 
                 actions = {
 
-                    TextButton(
-
+                    IconButton(
                         onClick = {
-                            viewModel.loadEntityTypes()
+                            viewModel.loadEntities()
                         },
-
-                        enabled =
-                            !uiState.isLoading &&
-                                    !uiState.isDeleting
+                        enabled = !uiState.isLoading
                     ) {
 
-                        Text(
-                            text = "Actualizar"
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Actualizar"
                         )
                     }
                 }
+            )
+        },
+
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState
             )
         },
 
         floatingActionButton = {
 
             FloatingActionButton(
-
-                onClick = {
-
-                    viewModel.startCreate()
-
-                    onCreate()
-                },
-
-                containerColor =
-                    MaterialTheme
-                        .colorScheme
-                        .primaryContainer
+                onClick = onCreate
             ) {
 
-                Text(
-                    text = "+"
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Crear"
                 )
             }
-        },
-
-        snackbarHost = {
-
-            SnackbarHost(
-                hostState = snackbarHostState
-            )
         }
+    ) { paddingValues ->
 
-    ) { innerPadding ->
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(paddingValues)
         ) {
 
-            // =================================================
-            // INDICADOR DE REFRESH
-            // =================================================
 
-            if (
-                uiState.isLoading &&
-                uiState.entityTypes.isNotEmpty()
-            ) {
+            // ====================================================
+            // BARRA DE BÚSQUEDA
+            // ====================================================
 
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            androidx.compose.material3.OutlinedTextField(
 
-            // =================================================
-            // BUSCADOR
-            // =================================================
-
-            OutlinedTextField(
-
-                value = searchQuery,
+                value = searchText,
 
                 onValueChange = {
-                    searchQuery = it
+                    searchText = it
                 },
 
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        horizontal = 16.dp,
-                        vertical = 12.dp
-                    ),
+                    .padding(16.dp),
 
                 label = {
-                    Text(
-                        text =
-                            "Buscar tipo de entidad"
-                    )
+                    Text("Buscar")
                 },
 
-                placeholder = {
-                    Text(
-                        text =
-                            "Nombre, tamaño, sector o ID"
-                    )
-                },
-
-                singleLine = true,
-
-                enabled =
-                    !uiState.isDeleting
+                singleLine = true
             )
 
-            // =================================================
-            // ERROR SIN DATOS
-            // =================================================
+
+            // ====================================================
+            // ERROR CON DATOS EXISTENTES
+            // ====================================================
 
             if (
                 uiState.errorMessage != null &&
-                uiState.entityTypes.isEmpty() &&
-                !uiState.isLoading
+                uiState.entities.isNotEmpty()
             ) {
 
-                ErrorContent(
-
-                    message =
-                        uiState.errorMessage
-                            .orEmpty(),
-
+                ErrorBanner(
+                    message = uiState.errorMessage!!,
                     onRetry = {
-                        viewModel.loadEntityTypes()
+                        viewModel.loadEntities()
                     }
                 )
             }
 
-            // =================================================
-            // LOADING INICIAL
-            // =================================================
 
-            else if (
+            // ====================================================
+            // LOADING
+            // ====================================================
+
+            if (
                 uiState.isLoading &&
-                uiState.entityTypes.isEmpty()
+                uiState.entities.isEmpty()
             ) {
 
                 LoadingContent()
+
             }
 
-            // =================================================
-            // LISTA VACÍA
-            // =================================================
+            // ====================================================
+            // ERROR SIN DATOS
+            // ====================================================
 
             else if (
                 !uiState.isLoading &&
-                uiState.entityTypes.isEmpty() &&
-                uiState.errorMessage == null
+                uiState.errorMessage != null &&
+                uiState.entities.isEmpty()
             ) {
 
-                EmptyContent(
-
-                    onCreate = {
-
-                        viewModel.startCreate()
-
-                        onCreate()
+                ErrorContent(
+                    message = uiState.errorMessage!!,
+                    onRetry = {
+                        viewModel.loadEntities()
                     }
                 )
+
             }
 
-            // =================================================
-            // LISTADO
-            // =================================================
+            // ====================================================
+            // LISTA VACÍA
+            // ====================================================
+
+            else if (
+                !uiState.isLoading &&
+                uiState.errorMessage == null &&
+                uiState.entities.isEmpty()
+            ) {
+
+                EmptyContent()
+
+            }
+
+            // ====================================================
+            // BUSQUEDA SIN RESULTADOS
+            // ====================================================
+
+            else if (
+                uiState.entities.isNotEmpty() &&
+                filteredEntities.isEmpty()
+            ) {
+
+                NoSearchResults()
+
+            }
+
+            // ====================================================
+            // LISTA
+            // ====================================================
 
             else {
 
-                // ---------------------------------------------
-                // Error mientras todavía hay datos
-                // ---------------------------------------------
-
-                if (
-                    uiState.errorMessage != null &&
-                    uiState.entityTypes.isNotEmpty()
-                ) {
-
-                    Text(
-
-                        text =
-                            uiState.errorMessage
-                                .orEmpty(),
-
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .error,
-
-                        style =
-                            MaterialTheme
-                                .typography
-                                .bodySmall,
-
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 16.dp,
-                                vertical = 4.dp
-                            )
-                    )
-                }
-
-                // ---------------------------------------------
-                // Sin coincidencias de búsqueda
-                // ---------------------------------------------
-
-                if (
-                    searchQuery.isNotBlank() &&
-                    filteredEntityTypes.isEmpty()
-                ) {
-
-                    Box(
-
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
-
-                        Text(
-                            text =
-                                "No se encontraron coincidencias."
-                        )
+                EntityTypeList(
+                    entities = filteredEntities,
+                    onEdit = onEdit,
+                    onDelete = {
+                        entityToDelete = it
                     }
-
-                } else {
-
-                    // -----------------------------------------
-                    // LISTA
-                    // -----------------------------------------
-
-                    LazyColumn(
-
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        contentPadding =
-                            PaddingValues(
-                                top = 4.dp,
-                                bottom = 100.dp
-                            )
-                    ) {
-
-                        items(
-
-                            items =
-                                filteredEntityTypes,
-
-                            key = {
-                                it.idEntityType
-                            }
-
-                        ) { entityType ->
-
-                            EntityTypeItem(
-
-                                entityType =
-                                    entityType,
-
-                                onEdit = { id ->
-                                    onEdit(id)
-                                },
-
-                                onDelete = {
-                                    viewModel.requestDelete(it)
-                                },
-
-                                enabled =
-                                    !uiState.isDeleting &&
-                                            !uiState.isSaving
-                            )
-                        }
-                    }
-                }
+                )
             }
         }
     }
 
-    // =========================================================
-    // CONFIRMACIÓN DE ELIMINACIÓN
-    // =========================================================
 
-    val entityTypeToDelete =
-        uiState.entityTypeToDelete
+    // ============================================================
+    // CONFIRMACIÓN DELETE
+    // ============================================================
 
-    if (entityTypeToDelete != null) {
+    entityToDelete?.let { entity ->
 
         AlertDialog(
 
             onDismissRequest = {
 
                 if (!uiState.isDeleting) {
-
-                    viewModel.cancelDelete()
+                    entityToDelete = null
                 }
             },
 
             title = {
-
-                Text(
-                    text =
-                        "Eliminar tipo de entidad"
-                )
+                Text("Eliminar tipo de entidad")
             },
 
             text = {
-
                 Text(
-                    text =
-                        "¿Seguro que querés eliminar " +
-                                "\"${entityTypeToDelete.nameTypeEntity}\"?"
+                    "¿Seguro que querés eliminar " +
+                            "\"${entity.nameTypeEntity}\"?"
                 )
             },
 
@@ -514,48 +338,27 @@ fun EntityTypeListScreen(
                 Button(
 
                     onClick = {
-                        viewModel.deleteEntityType()
+
+                        viewModel.deleteEntity(
+                            entity.idEntityType
+                        )
+
+                        entityToDelete = null
                     },
 
-                    enabled =
-                        !uiState.isDeleting
+                    enabled = !uiState.isDeleting
                 ) {
 
                     if (uiState.isDeleting) {
 
-                        Row(
-
-                            horizontalArrangement =
-                                Arrangement.Center,
-
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-
-                            CircularProgressIndicator(
-
-                                modifier =
-                                    Modifier.size(18.dp),
-
-                                strokeWidth = 2.dp
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.size(8.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Eliminando..."
-                            )
-                        }
+                        CircularProgressIndicator(
+                            modifier = Modifier.height(20.dp),
+                            strokeWidth = 2.dp
+                        )
 
                     } else {
 
-                        Text(
-                            text = "Eliminar"
-                        )
+                        Text("Eliminar")
                     }
                 }
             },
@@ -565,64 +368,166 @@ fun EntityTypeListScreen(
                 TextButton(
 
                     onClick = {
-                        viewModel.cancelDelete()
+                        entityToDelete = null
                     },
 
-                    enabled =
-                        !uiState.isDeleting
+                    enabled = !uiState.isDeleting
                 ) {
 
-                    Text(
-                        text = "Cancelar"
-                    )
+                    Text("Cancelar")
                 }
             }
         )
     }
+
+
+    // ============================================================
+    // ERROR DELETE
+    // ============================================================
+
+    uiState.deleteErrorMessage?.let { message ->
+
+        LaunchedEffect(message) {
+
+            snackbarHostState.showSnackbar(message)
+
+            viewModel.clearDeleteMessage()
+        }
+    }
 }
 
 
-// =============================================================
-// LOADING
-// =============================================================
+// =================================================================
+// LISTA
+// =================================================================
 
 @Composable
-private fun LoadingContent() {
+private fun EntityTypeList(
+    entities: List<EntityType>,
+    onEdit: (Int) -> Unit,
+    onDelete: (EntityType) -> Unit
+) {
 
-    Box(
+    LazyColumn(
 
-        modifier =
-            Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
 
-        contentAlignment =
-            Alignment.Center
+        contentPadding = PaddingValues(
+            horizontal = 16.dp,
+            vertical = 8.dp
+        ),
+
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
 
-        Column(
+        items(
+            items = entities,
+            key = {
+                it.idEntityType
+            }
+        ) { entity ->
 
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
+            EntityTypeItem(
 
-            CircularProgressIndicator()
+                entity = entity,
 
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
+                onEdit = {
+                    onEdit(entity.idEntityType)
+                },
 
-            Text(
-                text =
-                    "Cargando tipos de entidad..."
+                onDelete = {
+                    onDelete(entity)
+                }
             )
         }
     }
 }
 
 
-// =============================================================
+// =================================================================
+// LOADING
+// =================================================================
+
+@Composable
+private fun LoadingContent() {
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            CircularProgressIndicator()
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = "Cargando tipos de entidad..."
+            )
+        }
+    }
+}
+
+
+// =================================================================
+// EMPTY
+// =================================================================
+
+@Composable
+private fun EmptyContent() {
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Text(
+                text = "No hay tipos de entidad."
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            Text(
+                text = "La lista está vacía."
+            )
+        }
+    }
+}
+
+
+// =================================================================
+// SIN RESULTADOS DE BÚSQUEDA
+// =================================================================
+
+@Composable
+private fun NoSearchResults() {
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Text(
+            text = "No se encontraron resultados."
+        )
+    }
+}
+
+
+// =================================================================
 // ERROR
-// =============================================================
+// =================================================================
 
 @Composable
 private fun ErrorContent(
@@ -631,42 +536,22 @@ private fun ErrorContent(
 ) {
 
     Box(
-
-        modifier =
-            Modifier.fillMaxSize(),
-
-        contentAlignment =
-            Alignment.Center
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
 
         Column(
-
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-
-            modifier =
-                Modifier.padding(24.dp)
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
         ) {
 
             Text(
-
-                text =
-                    "No se pudieron cargar los datos.",
-
-                style =
-                    MaterialTheme
-                        .typography
-                        .titleMedium,
-
-                color =
-                    MaterialTheme
-                        .colorScheme
-                        .error
+                text = "No se pudieron cargar los datos.",
+                style = MaterialTheme.typography.titleMedium
             )
 
             Spacer(
-                modifier =
-                    Modifier.height(8.dp)
+                modifier = Modifier.height(8.dp)
             )
 
             Text(
@@ -674,85 +559,49 @@ private fun ErrorContent(
             )
 
             Spacer(
-                modifier =
-                    Modifier.height(16.dp)
+                modifier = Modifier.height(16.dp)
             )
 
             Button(
                 onClick = onRetry
             ) {
 
-                Text(
-                    text = "Reintentar"
-                )
+                Text("Reintentar")
             }
         }
     }
 }
 
 
-// =============================================================
-// EMPTY
-// =============================================================
+// =================================================================
+// ERROR BANNER
+// =================================================================
 
 @Composable
-private fun EmptyContent(
-    onCreate: () -> Unit
+private fun ErrorBanner(
+    message: String,
+    onRetry: () -> Unit
 ) {
 
-    Box(
-
-        modifier =
-            Modifier.fillMaxSize(),
-
-        contentAlignment =
-            Alignment.Center
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 16.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
     ) {
 
-        Column(
+        Text(
+            text = message,
+            modifier = Modifier.weight(1f)
+        )
 
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-
-            modifier =
-                Modifier.padding(24.dp)
+        TextButton(
+            onClick = onRetry
         ) {
 
-            Text(
-
-                text =
-                    "No existen tipos de entidad.",
-
-                style =
-                    MaterialTheme
-                        .typography
-                        .titleMedium
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
-
-            Text(
-                text =
-                    "Podés crear el primero desde el botón inferior."
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            Button(
-                onClick = onCreate
-            ) {
-
-                Text(
-                    text =
-                        "Crear tipo de entidad"
-                )
-            }
+            Text("Reintentar")
         }
     }
 }
